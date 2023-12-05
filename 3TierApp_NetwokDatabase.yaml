@@ -1,0 +1,928 @@
+Description: 3 Tier Archichecture VPC configuration
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: 3TierWebApp
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.1.0.0/16
+
+  PublicSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.1.0/24
+
+  PublicSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
+    Type: String
+    Default: 10.1.2.0/24
+
+  PrivateAppSubnetAZ1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private App subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.3.0/24
+
+  PrivateDBSubnetAZ1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private DB subnet in the first Availability Zone
+    Type: String
+    Default: 10.1.4.0/24
+
+  PrivateAppSubnetAZ2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private App subnet in the second Availability Zone
+    Type: String
+    Default: 10.1.5.0/24
+
+  PrivateDBSubnetAZ2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private DB subnet in the second Availability Zone
+    Type: String
+    Default: 10.1.6.0/24
+
+
+  DBUser:
+    NoEcho: "true"
+    Description: The database admin account username
+    Type: String
+    MinLength: "1"
+    MaxLength: "16"
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBPassword:
+    NoEcho: "true"
+    Description: The database admin account password
+    Type: String
+    MinLength: "8"
+    MaxLength: "41"
+    ConstraintDescription: must have at least 8 & at most 41 characters
+  DBPort:
+    Description: Database port
+    Type: Number
+    Default: 3306
+    MinValue: 1025
+    MaxValue: 65535
+    ConstraintDescription: must be a valid number between 1025-65535
+  DBInstanceClass:
+    Description: The database instance type
+    Type: String
+    AllowedValues:
+      - db.r5.large
+      - db.r5.xlarge
+      - db.r5.2xlarge
+      - db.r5.4xlarge
+      - db.r5.8xlarge
+      - db.r5.12xlarge
+      - db.r5.16xlarge
+      - db.r5.24xlarge
+      - db.r6g.xlarge
+      - db.r6g.2xlarge
+      - db.r6g.4xlarge
+      - db.r6g.8xlarge
+      - db.r6g.12xlarge
+      - db.r6g.16xlarge
+    ConstraintDescription: must select a valid database instance type.
+  DBEngineVersion:
+    Description: The database engine Version
+    Type: String
+    Default: 8.0.mysql_aurora.3.05.0
+
+
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m1.small
+      - m1.medium
+      - m1.large
+      - m1.xlarge
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - m3.medium
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - c1.medium
+      - c1.xlarge
+      - c3.large
+      - c3.xlarge
+      - c3.2xlarge
+      - c3.4xlarge
+      - c3.8xlarge
+      - c4.large
+      - c4.xlarge
+      - c4.2xlarge
+      - c4.4xlarge
+      - c4.8xlarge
+      - g2.2xlarge
+      - g2.8xlarge
+      - r3.large
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - i2.xlarge
+      - i2.2xlarge
+      - i2.4xlarge
+      - i2.8xlarge
+      - d2.xlarge
+      - d2.2xlarge
+      - d2.4xlarge
+      - d2.8xlarge
+      - hi1.4xlarge
+      - hs1.8xlarge
+      - cr1.8xlarge
+      - cc2.8xlarge
+      - cg1.4xlarge
+    ConstraintDescription: must be a valid EC2 instance type.
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+    ConstraintDescription: Must be a valid IP CIDR range of the form x.x.x.x/x
+
+  ImageId: 
+    Type: String
+    Description: 'Free tier Amazon Linux 2023 AMI for N.Virgina us-east-1 Region'
+    Default: 'ami-0230bd60aa48260c6'
+
+Mappings:
+  AWSInstanceType2Arch:
+    t1.micro:
+      Arch: HVM64
+    t2.nano:
+      Arch: HVM64
+    t2.micro:
+      Arch: HVM64
+    t2.small:
+      Arch: HVM64
+    t2.medium:
+      Arch: HVM64
+    t2.large:
+      Arch: HVM64
+    m1.small:
+      Arch: HVM64
+    m1.medium:
+      Arch: HVM64
+    m1.large:
+      Arch: HVM64
+    m1.xlarge:
+      Arch: HVM64
+    m2.xlarge:
+      Arch: HVM64
+    m2.2xlarge:
+      Arch: HVM64
+    m2.4xlarge:
+      Arch: HVM64
+    m3.medium:
+      Arch: HVM64
+    m3.large:
+      Arch: HVM64
+    m3.xlarge:
+      Arch: HVM64
+    m3.2xlarge:
+      Arch: HVM64
+    m4.large:
+      Arch: HVM64
+    m4.xlarge:
+      Arch: HVM64
+    m4.2xlarge:
+      Arch: HVM64
+    m4.4xlarge:
+      Arch: HVM64
+    m4.10xlarge:
+      Arch: HVM64
+    c1.medium:
+      Arch: HVM64
+    c1.xlarge:
+      Arch: HVM64
+    c3.large:
+      Arch: HVM64
+    c3.xlarge:
+      Arch: HVM64
+    c3.2xlarge:
+      Arch: HVM64
+    c3.4xlarge:
+      Arch: HVM64
+    c3.8xlarge:
+      Arch: HVM64
+    c4.large:
+      Arch: HVM64
+    c4.xlarge:
+      Arch: HVM64
+    c4.2xlarge:
+      Arch: HVM64
+    c4.4xlarge:
+      Arch: HVM64
+    c4.8xlarge:
+      Arch: HVM64
+    g2.2xlarge:
+      Arch: HVMG2
+    g2.8xlarge:
+      Arch: HVMG2
+    r3.large:
+      Arch: HVM64
+    r3.xlarge:
+      Arch: HVM64
+    r3.2xlarge:
+      Arch: HVM64
+    r3.4xlarge:
+      Arch: HVM64
+    r3.8xlarge:
+      Arch: HVM64
+    i2.xlarge:
+      Arch: HVM64
+    i2.2xlarge:
+      Arch: HVM64
+    i2.4xlarge:
+      Arch: HVM64
+    i2.8xlarge:
+      Arch: HVM64
+    d2.xlarge:
+      Arch: HVM64
+    d2.2xlarge:
+      Arch: HVM64
+    d2.4xlarge:
+      Arch: HVM64
+    d2.8xlarge:
+      Arch: HVM64
+    hi1.4xlarge:
+      Arch: HVM64
+    hs1.8xlarge:
+      Arch: HVM64
+    cr1.8xlarge:
+      Arch: HVM64
+    cc2.8xlarge:
+      Arch: HVM64
+  AWSRegionArch2AMI:
+    us-east-1:
+      HVM64: ami-0ff8a91507f77f867
+      HVMG2: ami-0a584ac55a7631c0c
+    us-west-2:
+      HVM64: ami-a0cfeed8
+      HVMG2: ami-0e09505bc235aa82d
+    us-west-1:
+      HVM64: ami-0bdb828fd58c52235
+      HVMG2: ami-066ee5fd4a9ef77f1
+    eu-west-1:
+      HVM64: ami-047bb4163c506cd98
+      HVMG2: ami-0a7c483d527806435
+    eu-west-2:
+      HVM64: ami-f976839e
+      HVMG2: NOT_SUPPORTED
+    eu-west-3:
+      HVM64: ami-0ebc281c20e89ba4b
+      HVMG2: NOT_SUPPORTED
+    eu-central-1:
+      HVM64: ami-0233214e13e500f77
+      HVMG2: ami-06223d46a6d0661c7
+    ap-northeast-1:
+      HVM64: ami-06cd52961ce9f0d85
+      HVMG2: ami-053cdd503598e4a9d
+    ap-northeast-2:
+      HVM64: ami-0a10b2721688ce9d2
+      HVMG2: NOT_SUPPORTED
+    ap-northeast-3:
+      HVM64: ami-0d98120a9fb693f07
+      HVMG2: NOT_SUPPORTED
+    ap-southeast-1:
+      HVM64: ami-08569b978cc4dfa10
+      HVMG2: ami-0be9df32ae9f92309
+    ap-southeast-2:
+      HVM64: ami-09b42976632b27e9b
+      HVMG2: ami-0a9ce9fecc3d1daf8
+    ap-south-1:
+      HVM64: ami-0912f71e06545ad88
+      HVMG2: ami-097b15e89dbdcfcf4
+    us-east-2:
+      HVM64: ami-0b59bfac6be064b78
+      HVMG2: NOT_SUPPORTED
+    ca-central-1:
+      HVM64: ami-0b18956f
+      HVMG2: NOT_SUPPORTED
+    sa-east-1:
+      HVM64: ami-07b14488da8ea02a0
+      HVMG2: NOT_SUPPORTED
+    cn-north-1:
+      HVM64: ami-0a4eaf6c4454eda75
+      HVMG2: NOT_SUPPORTED
+    cn-northwest-1:
+      HVM64: ami-6b6a7d09
+      HVMG2: NOT_SUPPORTED
+
+
+Resources:
+
+# create an iam role and a s3 bucket
+  3TierAppRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Action: 
+              - 'sts:AssumeRole'
+            Principal: 
+                Service: 
+                  - ec2.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyName: AmazonS3ReadOnlyAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:Get*
+                  - s3:List*
+                  - s3:Describe*
+                  - s3-object-lambda:Get*
+                  - s3-object-lambda:List*
+                Resource: !Sub arn:aws:s3:::${gakas3TierAppS3Bucket}/*
+
+        - PolicyName: AmazonSSMManagedInstanceCore
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: 
+                - Effect: Allow
+                  Action: 
+                    - ssm:DescribeAssociation
+                    - ssm:GetDeployablePatchSnapshotForInstance
+                    - ssm:GetDocument
+                    - ssm:DescribeDocument
+                    - ssm:GetManifest
+                    - ssm:GetParameter
+                    - ssm:GetParameters
+                    - ssm:ListAssociations
+                    - ssm:ListInstanceAssociations
+                    - ssm:PutInventory
+                    - ssm:PutComplianceItems
+                    - ssm:PutConfigurePackageResult
+                    - ssm:UpdateAssociationStatus
+                    - ssm:UpdateInstanceAssociationStatus
+                    - ssm:UpdateInstanceInformation
+                  Resource: !Sub arn:aws:s3:::${gakas3TierAppS3Bucket}/*
+                - Effect: Allow
+                  Action:
+                    - ssmmessages:CreateControlChannel
+                    - ssmmessages:CreateDataChannel
+                    - ssmmessages:OpenControlChannel
+                    - ssmmessages:OpenDataChannel
+                  Resource: !Sub arn:aws:s3:::${gakas3TierAppS3Bucket}/*
+                - Effect: Allow
+                  Action: 
+                    - ec2messages:AcknowledgeMessage
+                    - ec2messages:DeleteMessage
+                    - ec2messages:FailMessage
+                    - ec2messages:GetEndpoint
+                    - ec2messages:GetMessages
+                    - ec2messages:SendReply
+                  Resource: !Sub arn:aws:s3:::${gakas3TierAppS3Bucket}/*
+
+
+
+           # - AmazonS3ReadOnlyAccess
+           # - AmazonSSMManagedInstanceCore
+          # PolicyDocument:
+          #   Version: "2012-10-17"
+          #   Statement:
+          #     - Effect: Allow
+          #       Action: '*'
+          #       Resource: '*'
+
+  # RootInstanceProfile:
+  #   Type: 'AWS::IAM::InstanceProfile'
+  #   Properties:
+  #     Path: /
+  #     Roles:
+  #       - !Ref RootRole
+
+
+
+  gakas3TierAppS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    #DeletionPolicy: Retain
+    Properties:
+      BucketName: gakas-3tier-app-s3-bucket
+
+
+
+
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs '' ]
+      CidrBlock: !Ref PublicSubnet1CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet(AZ1)
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PublicSubnet2CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet(AZ2)
+
+  PrivateAppSubnetAZ1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateAppSubnetAZ1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private App Subnet(AZ1)
+
+  PrivateDBSubnetAZ1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 0, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateDBSubnetAZ1CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private DB Subnet(AZ1)
+
+  PrivateAppSubnetAZ2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateAppSubnetAZ2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private App Subnet(AZ2)
+
+  PrivateDBSubnetAZ2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [ 1, !GetAZs  '' ]
+      CidrBlock: !Ref PrivateDBSubnetAZ2CIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private DB Subnet(AZ2)
+
+
+
+
+
+
+
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  
+
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+
+# Associate the both public subnet to the public route table
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet2
+
+
+### AZ 1 ###
+
+# Define an elastic ip address for the NatGateway in the AZ 1
+  NATGatewayEIP1:
+   Type: AWS::EC2::EIP
+   Properties:
+      Domain: vpc
+
+# Create a NatGateway in the AZ 1 and accossiate the EIP 
+  NatGatewayAZ1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIP1.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      ConnectivityType: public
+      #Tags:
+        #- key: Name
+          #Value: NAT-GW-AZ1
+
+# Define the private app layer route table in AZ 1
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Routes (AZ1)
+
+# Route app layer traffic destined for outside the VPC to the NAT gateway 1   
+  RouteNatGateway1:
+    Type: AWS::EC2::Route
+    DependsOn: NatGatewayAZ1
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayAZ1
+
+
+# Associate the private app layer subnet AZ 1 to the private route table 1
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateAppSubnetAZ1
+  
+
+
+### AZ 2 ###
+
+# Define an elastic ip address for the NatGateway in the AZ 2
+  NATGatewayEIP2:
+   Type: AWS::EC2::EIP
+   Properties:
+      Domain: vpc
+
+# Create a NatGateway in the AZ 2 and accossiate the EIP 
+  NatGatewayAZ2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIP2.AllocationId
+      SubnetId: !Ref PublicSubnet2
+      ConnectivityType: public
+      #Tags:
+        #- key: Name
+          #Value: NAT-GW-AZ2
+      
+# Define the private app route table in AZ 2
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Routes (AZ2)
+
+# Route app layer traffic destined for outside the VPC to the NAT gateway 2
+  RouteNatGateway2:
+    Type: AWS::EC2::Route
+    DependsOn: NatGatewayAZ2
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayAZ2
+
+# Associate the private app layer subnet AZ 2 to the private route table 2
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      SubnetId: !Ref PrivateAppSubnetAZ2
+      
+
+### Security groups ###
+
+
+
+# security group for the public internet facing load balancer
+  InternetFacingLbSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "External load balancer security group"
+      GroupName: Internet-facing-lb-sg
+      VpcId: !Ref VPC
+      # SecurityGroupIngress:
+      #   - IpProtocol: tcp
+      #     FromPort: 80
+      #     ToPort: 80
+      #     CidrIp: !Sub "${MyIp}"
+      # SecurityGroupEgress:
+      #   - IpProtocol: tcp
+      #     FromPort: 80
+      #     ToPort: 80
+      #     CidrIp: 0.0.0.0/0
+
+  # InternetFacingLbSgInboundRule:
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     IpProtocol: tcp
+  #     FromPort: 80
+  #     ToPort: 80
+  #     #CidrIp: !Sub "${MyIp}"
+  #     SourceSecurityGroupId: 
+  #       Fn::GetAtt:
+  #         - !Sub "${MyIp}"
+  #         - GroupId
+  #     GroupId:
+  #       Fn::GetAtt:
+  #         - InternetFacingLbSg
+  #         - GroupId
+
+
+#  Public instances in the web tier security group
+  WebTierSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "SG for the Web Tier"
+      GroupName: WebTierSG
+      VpcId: !Ref VPC
+
+  WebTierSGInboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      SourceSecurityGroupId: 
+        Fn::GetAtt:
+          - InternetFacingLbSg
+          - GroupId
+      GroupId:
+        Fn::GetAtt:
+          - WebTierSG
+          - GroupId
+
+
+# Security group for the internal load balancer
+  InternalLbSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "SG for the internal load balancer"
+      GroupName: internal-lb-sg
+      VpcId: !Ref VPC
+
+  InternalLbSgInboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      SourceSecurityGroupId: 
+        Fn::GetAtt:
+          - WebTierSG
+          - GroupId
+      GroupId:
+        Fn::GetAtt:
+          - InternalLbSg
+          - GroupId
+
+
+# Security group for the private App instances
+  PrivateInstanceSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "SG for the private app layer tier sg"
+      GroupName: PrivateInstanceSG
+      VpcId: !Ref VPC
+      
+
+  PrivateInstanceSGInboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 4000
+      ToPort: 4000
+      SourceSecurityGroupId: 
+        Fn::GetAtt:
+          - InternalLbSg
+          - GroupId
+      GroupId:
+        Fn::GetAtt:
+          - PrivateInstanceSG
+          - GroupId
+
+
+# Security group for the private database instances
+  DBSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "SG for the databases"
+      GroupName: DBSG
+      VpcId: !Ref VPC
+
+  DBSGInboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      SourceSecurityGroupId: 
+        Fn::GetAtt:
+          - PrivateInstanceSG
+          - GroupId
+      GroupId:
+        Fn::GetAtt:
+          - DBSG
+          - GroupId
+
+
+# subnet group in the RDS dashborad
+  ThreeTierDbSubnetGroup: 
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupName: three-tier-db-subnet-group
+      DBSubnetGroupDescription: "Subnet group for the database layer of the architecture"
+      #VpcId: !Ref VpcCIDR
+      SubnetIds: 
+        - !Ref PrivateDBSubnetAZ1
+        - !Ref PrivateDBSubnetAZ2
+
+
+# Create the db cluster  
+  RDSCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DBClusterIdentifier: !Sub "${AWS::StackName}"
+      #CopyTagsToSnapshot: true
+      DBSubnetGroupName: !Ref ThreeTierDbSubnetGroup
+      #EnableCloudwatchLogsExports: [error, general, slowquery]
+      Engine: aurora-mysql
+      EngineMode: provisioned
+      #MultiAZ: true
+      EngineVersion: !Ref DBEngineVersion
+      #CopyTagsToSnapshot: false
+      # KmsKeyId:
+      #   !If [
+      #     IsCreateNewKey,
+      #     !Ref KMSKey,
+      #     !If [IsUserProvidedKey, !Ref EncryptionKeyId, !Ref "AWS::NoValue"],
+      #   ]
+      MasterUsername: !Ref DBUser
+      MasterUserPassword: !Ref DBPassword
+      Port: !Ref DBPort
+      #StorageEncrypted: !If [IsUnencrypted, "false", "true"]
+      # Tags:
+      #   - Key: Application
+      #     Value: !Ref "AWS::StackId"
+      #   - Key: Name
+      #     Value: !Sub "${AWS::StackName}-cluster"
+      VpcSecurityGroupIds: [!Ref DBSG]
+    #DeletionPolicy: Snapshot
+
+# create an instance for the db cluster
+  RDSDBInstance1:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBSubnetGroupName:
+        Ref: ThreeTierDbSubnetGroup
+      Engine: aurora-mysql
+      DBClusterIdentifier:
+        Ref: RDSCluster
+      PubliclyAccessible: 'false'
+      DBInstanceClass: !Ref DBInstanceClass
+
+  RDSDBInstance2:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBSubnetGroupName:
+        Ref: ThreeTierDbSubnetGroup
+      Engine: aurora-mysql
+      DBClusterIdentifier:
+        Ref: RDSCluster
+      PubliclyAccessible: 'false'
+      DBInstanceClass: !Ref DBInstanceClass
+  
+
+  MyInstanceProfile: 
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: / 
+      Roles: 
+        - !Ref 3TierAppRole
+
+  AppLayerInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      # ImageId: !FindInMap 
+      #   - AWSRegionArch2AMI
+      #   - !Ref 'AWS::Region'
+      #   - !FindInMap 
+      #     - AWSInstanceType2Arch
+      #     - !Ref InstanceType
+      #     - Arch
+      ImageId: !Ref ImageId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref MyInstanceProfile
+      SecurityGroupIds:
+        - !Ref PrivateInstanceSG
+      SubnetId: !Ref PrivateAppSubnetAZ1
+      #KeyName: AppLayer
+
+  # WebServerSecurityGroup:
+  #   Type: 'AWS::EC2::SecurityGroup'
+  #   Properties:
+  #     GroupDescription: Enable HTTP access via port 80
+  #     SecurityGroupIngress:
+  #       - IpProtocol: tcp
+  #         FromPort: 80
+  #         ToPort: 80
+  #         CidrIp: 0.0.0.0/0
+  #       - IpProtocol: tcp
+  #         FromPort: 22
+  #         ToPort: 22
+  #         CidrIp: !Ref SSHLocation
+
+
+
+
+
+
+
+
+# Outputs:
+#   VPC:
+#     Description: A reference to the created VPC
+#     Value: !Ref VPC
+
+#   PublicSubnets:
+#     Description: A list of the public subnets
+#     Value: !Join [ ",", [ !Ref PublicSubnet1, !Ref PublicSubnet2 ]]
+
+#   PrivateSubnets:
+#     Description: A list of the private subnets
+#     Value: !Join [ ",", [ !Ref PrivateSubnet1, !Ref PrivateSubnet2 ]]
+
+#   PublicSubnet1:
+#     Description: A reference to the public subnet in the 1st Availability Zone
+#     Value: !Ref PublicSubnet1
+
+#   PublicSubnet2:
+#     Description: A reference to the public subnet in the 2nd Availability Zone
+#     Value: !Ref PublicSubnet2
+
+#   PrivateSubnet1:
+#     Description: A reference to the private subnet in the 1st Availability Zone
+#     Value: !Ref PrivateSubnet1
+
+#   PrivateSubnet2:
+#     Description: A reference to the private subnet in the 2nd Availability Zone
+#     Value: !Ref PrivateSubnet2
